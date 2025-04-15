@@ -9,7 +9,9 @@ export default {
             Add Question
         </button></h1>
         <QuestionList @item-updated="handleItemUpdated" v-for="chap in questions" :key='chap.id' :question="chap.question" :answer="chap.answer" :opt1="chap.opt1" :opt2="chap.opt2" :opt3="chap.opt3" :opt4="chap.opt4" :id="chap.id" />
-    <!-- Modal -->
+        <p v-if="questions[0]==null">NO QUESTIONS TO DISPLAY!</p>
+
+        <!-- Modal -->
     <div class="modal fade" id="addqmodal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

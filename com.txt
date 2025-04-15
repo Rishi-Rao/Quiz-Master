@@ -1,0 +1,4 @@
+celery -A app:celery_app worker -l INFO
+celery -A app:celery_app beat -l INFO
+redis-server
+~/go/bin/MailHog

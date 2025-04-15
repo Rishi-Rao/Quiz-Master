@@ -1,9 +1,11 @@
 from datetime import datetime
-from flask import jsonify, request
+from flask import jsonify, request, current_app as app
 from flask_restful import Api, Resource, fields, marshal_with
 from flask_security import auth_required, current_user
 from backend.models import *
+from backend.celery.mail_service import onNewQuiz
 
+cache = app.cache
 
 api = Api(prefix='/api')
 sub_fields = {
@@ -35,10 +37,19 @@ q_fields = {
     'answer' : fields.String,
     
 }
+score_fields = {
+    'id' : fields.Integer,
+    'quiz_id' : fields.Integer,
+    'user_id' : fields.Integer,
+    'score' : fields.Integer,
+    'timestamp' : fields.DateTime,
+}
+
 
 class SubAPI(Resource):
-    @marshal_with(sub_fields)
     @auth_required('token')
+    @cache.memoize(timeout=5)
+    @marshal_with(sub_fields)
     def get(self, sub_id):
         sub = Subject.query.filter_by(id=sub_id).first()
         if not sub:
@@ -70,8 +81,9 @@ class SubAPI(Resource):
         
 class SubListAPI(Resource):
     # returns all the subjects
-    @marshal_with(sub_fields)
     @auth_required('token')
+    @cache.cached(timeout=5)
+    @marshal_with(sub_fields)
     def get(self ):
         print(current_user.roles[0])
         sub = Subject.query.all()
@@ -90,8 +102,9 @@ class SubListAPI(Resource):
         
 class ChapAPI(Resource):
     # gets all chapters with sub_id = id
-    @marshal_with(chap_fields)
     @auth_required('token')
+    @cache.memoize(timeout=5)
+    @marshal_with(chap_fields)
     def get(self, id):
         sub = Chapter.query.filter_by(sub_id=id).all()
         if not sub:
@@ -125,8 +138,9 @@ class ChapAPI(Resource):
             return {"message" : "not valid user"}, 403
         
 class ChapListAPI(Resource):
-    @marshal_with(chap_fields)
     @auth_required('token')
+    @cache.cached(timeout=5)
+    @marshal_with(chap_fields)
     def get(self ):
         chap = Chapter.query.all()
         return chap
@@ -143,8 +157,9 @@ class ChapListAPI(Resource):
         return jsonify({'message' : 'chapter created'})
 
 class QuizApi(Resource):
-    @marshal_with(quiz_fields)
     @auth_required('token')
+    @cache.memoize(timeout=5)
+    @marshal_with(quiz_fields)
     def get(self, id):
         try:    
             sub = Quiz.query.filter_by(chapter_id=id).all()
@@ -166,11 +181,13 @@ class QuizApi(Resource):
             if not sub:
                 return {"message" : "not found"}, 404
             db.session.add(sub)
+            sub = Chapter.query.filter_by(id=id).one()
+            onNewQuiz(sub.sub_id)
             db.session.commit()
-            return jsonify({'message' : 'chapter created'})
+            return jsonify({'message' : 'Quiz created'})
         except Exception as e:
             print(e)
-            return jsonify({'message' : 'chapter created'}),405
+            return jsonify({'message' : 'Quiz not created'}),405
     
     @marshal_with(quiz_fields)
     @auth_required('token')
@@ -201,8 +218,9 @@ class QuizApi(Resource):
             return {"message" : "not valid user"}, 403
 
 class QApi(Resource):
-    @marshal_with(q_fields)
     @auth_required('token')
+    @cache.memoize(timeout=5)
+    @marshal_with(q_fields)
     def get(self, id):
         try:    
             sub = Questions.query.filter_by(quiz_id=id).all()
@@ -267,6 +285,7 @@ class QApi(Resource):
 
 class SubscribeApi(Resource):
     @auth_required('token')
+    @cache.memoize(timeout=5)
     def get(self, user_id,sub_id):
         try:    
             sub = Subscribed.query.filter_by(user_id=user_id,sub_id=sub_id).first()
@@ -293,16 +312,36 @@ class SubscribeApi(Resource):
 
 class ScoreApi(Resource):
     @auth_required('token')
-    def put(self,quiz_id):
+    def put(self,id):
         try:
             data = request.get_json()
-            sub = Scores(user_id=data.get("user_id"),quiz_id=quiz_id,score=data.get('score'))
+            sub = Scores(user_id=data.get("user_id"),quiz_id=id,score=data.get('score'))
             db.session.add(sub)
             db.session.commit()
             return {"message" : "recorded"}
         except Exception as e:
             print(e)
             return 
+    
+    @auth_required('token')
+    @cache.memoize(timeout=5)
+    @marshal_with(score_fields)
+    def get(self,id):
+        try:
+            if id==1:
+                sub = Scores.query.all()
+                return sub
+            sub = Scores.query.filter_by(user_id=id).all()
+            print(sub)
+
+            return sub
+        except Exception as e:
+            print(e)
+            return 
+
+
+
+
 
 api.add_resource(SubAPI, '/subs/<int:sub_id>')
 api.add_resource(SubListAPI,'/subs')
@@ -311,5 +350,5 @@ api.add_resource(ChapListAPI,'/chaps')
 api.add_resource(QuizApi,'/quiz/<int:id>')
 api.add_resource(QApi,'/question/<int:id>')
 api.add_resource(SubscribeApi,'/subscribe/<int:user_id>/<int:sub_id>')
-api.add_resource(ScoreApi,'/score/<int:quiz_id>')
+api.add_resource(ScoreApi,'/score/<int:id>')
 # api.add_resource(QuizListApi, '/quiz')

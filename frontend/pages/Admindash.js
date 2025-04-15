@@ -3,11 +3,13 @@ import SubCard from "../components/SubCard.js"
 export default {
     template :`
     <div class="p-4">
+        <button v-if="this.$store.state.role=='admin'" type="button" class="btn-dark" @click="create_csv"> Get User Data </button>
         <h1> Subject List 👌
         <button v-if="this.$store.state.role=='admin'" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addsubmodal">
             Add Sub
         </button></h1>
         <SubCard @item-updated="handleItemUpdated" v-for="sub in subs" :key="sub.id" :name="sub.name" :desc="sub.description" :sub_id="sub.id" />
+        <p v-if="subs[0]==null">NO SUBS TO DISPLAY!</p>
     <!-- Modal -->
     <div v-if="this.$store.state.role=='admin'" class="modal fade" id="addsubmodal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -67,13 +69,29 @@ export default {
             
         },
         async handleItemUpdated(){
+            console.log("updated")
             const updatedSubs = await fetch(location.origin + '/api/subs', {
                     headers: {
                         'Authentication-Token': this.$store.state.auth_token
                     }
                 });
                 this.subs = await updatedSubs.json();
-        }
+        },
+        async create_csv(){
+             const res = await fetch(location.origin + '/create-csv')
+             const task_id = (await res.json()).task_id
+ 
+             const interval = setInterval(async() => {
+                 const res = await fetch(`${location.origin}/get-csv/${task_id}`)
+                 if (res.ok){
+                     console.log('data is ready')
+                     window.open(`${location.origin}/get-csv/${task_id}`)
+                     clearInterval(interval)
+                 }
+ 
+             }, 100)
+             
+         }
     },
     async mounted(){
         const res = await fetch(location.origin + '/api/subs', {
@@ -82,6 +100,7 @@ export default {
             }
         })
         this.subs = await res.json()
+        // console.log(this.subs[0]==null)
     },
     components : {
         SubCard,

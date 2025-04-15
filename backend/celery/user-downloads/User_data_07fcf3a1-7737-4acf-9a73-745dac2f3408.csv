@@ -1,0 +1,3 @@
+id,email,password,fs_uniquifier,active,name,qualification,dob
+1,admin@gmail.com,$2b$12$g6EUnHDaw58gu.Q7awKNyeMf3IKcxJ/NIPawrYQoUWsmRxtfSDAhe,9f7924427b5148948a833626f8301c6d,True,ADMIN,ADMIN,2004-12-23T00:00:00
+2,user1@gmail.com,$2b$12$H6TjRXPufLTQ6/7Kp8kiDeP7Lys0TYVG82g2LNc6zjqJTmI2LsIDK,eb00b3be764a4adc930f27b1db457331,True,user1,Diploma,2004-12-23T00:00:00

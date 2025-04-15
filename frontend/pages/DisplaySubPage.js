@@ -9,7 +9,9 @@ export default {
             Add Chapter
         </button></h1>
         <ChapList @item-updated="handleItemUpdated" v-for="chap in chaps" :key='chap.id' :name="chap.name" :desc="chap.description" :chap_id="chap.id" />
-    <!-- Modal -->
+        <p v-if="chaps[0]==null">NO CHAPTERS TO DISPLAY!</p>
+    
+        <!-- Modal -->
     <div  v-if="this.$store.state.role=='admin'" class="modal fade" id="addchapmodal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

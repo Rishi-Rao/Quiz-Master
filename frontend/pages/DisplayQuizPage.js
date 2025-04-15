@@ -9,7 +9,9 @@ export default {
             Add Quiz
         </button></h1>
         <QuizList @item-updated="handleItemUpdated" v-for="chap in quizes" :key='chap.id' :doq="chap.doq" :duration="chap.duration" :remarks="chap.remarks" :id="chap.id" />
-    <!-- Modal -->
+        <p v-if="quizes[0]==null">NO QUIZES TO DISPLAY!</p>
+        
+        <!-- Modal -->
     <div v-if="this.$store.state.role=='admin'" class="modal fade" id="addquizmodal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
